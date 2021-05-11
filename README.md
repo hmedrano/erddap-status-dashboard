@@ -5,5 +5,10 @@ This Streamlit app, uses [erddap-python](https://github.com/hmedrano/erddap-pyth
 [ERDDAP](https://coastwatch.pfeg.noaa.gov/erddap/information.html) it's a data distribution server that gives you a simple, consistent way to download subsets of scientific datasets in common file formats and make graphs and maps.
 
 
+
+![Streamlit screenshot](demo-dashboard.png "Major Load Datasets timeseries plots")
+
+Screenshot of some metrics
+
+
 -----
-Created by Favio Medrano
