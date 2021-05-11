@@ -303,7 +303,7 @@ def showGenerals(sdf):
 def showCredits():
 
     st.write('----')
-    st.write('Review the source code [here](https://github.com/hmedrano)')
+    st.write('Review the source code [here](https://github.com/hmedrano/erddap-status-dashboard)')
     st.write('*By Favio Medrano*')
 
 
