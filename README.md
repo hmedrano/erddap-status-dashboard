@@ -8,7 +8,6 @@ This Streamlit app, uses [erddap-python](https://github.com/hmedrano/erddap-pyth
 
 ![Streamlit screenshot](demo-dashboard.png "Major Load Datasets timeseries plots")
 
-Screenshot of some metrics
-
+Access the web application [here](https://share.streamlit.io/hmedrano/erddap-status-dashboard/main/dashboard_streamlit_app.py)
 
 -----
