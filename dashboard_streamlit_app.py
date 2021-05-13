@@ -2,9 +2,15 @@ import streamlit as st
 from erddapClient import ERDDAP_Server
 import altair as alt
 
-
-# Reference to the ERDDAP Server
+st.set_page_config(page_title="ERDDAP Status Dashboard")
+# DEFAULT ERDDAP Server
 DEFAULT_ERDDAPURL = 'https://coastwatch.pfeg.noaa.gov/erddap'
+# Check if url query param is provided
+if 'experimental_get_query_params' in dir(st):
+    query_params = st.experimental_get_query_params()
+    DEFAULT_ERDDAPURL = str(query_params["url"][0]) if "url" in query_params else 'https://coastwatch.pfeg.noaa.gov/erddap'
+
+# Reference to the Server connection object
 gremote = None
 lasterddapurl = None
 
@@ -18,7 +24,10 @@ def getStatusData(remote, erddapurl, force=False):
             lasterddapurl = erddapurl
 
     remote.parseStatusPage(force=force)
-    return remote.statusValues
+    statusValues = remote.statusValues
+    statusValues['version'] = remote.version_numeric
+    return statusValues
+
 
 def plotMLDTimeseries(sdf):
 
@@ -255,6 +264,7 @@ def plotResponsesSvsF(sdf):
         st.altair_chart(fig, use_container_width=False)
         st.write('**Successful responses**: `total={:,}  median={:,}ms`'.format(nrs, medianrf) + '<br>' + '**Failed responses**: `total={:,}  median={:,}seconds`'.format(nrs, medianrs), unsafe_allow_html=True)
 
+##
 
 def customCSS():
     hide_full_screen = '''
@@ -268,29 +278,31 @@ def customCSS():
 
 def titleDashboard():
     st.title("ERDDAP Server Status Dashboard")
-
     st.write("This is a ERDDAP server status dashboard demostration. We use [Streamlit](https://streamlit.io) for the wep app framework, [Altair](https://altair-viz.github.io) for visualizations and [erddap-python](https://github.com/hmedrano/erddap-python) for data collection.")
     st.write("[ERDDAP](https://coastwatch.pfeg.noaa.gov/erddap/information.html) it's a data distribution server that gives you a simple, consistent way to download subsets of scientific datasets in common file formats and make graphs and maps.")
     st.write("ERDDAP generates a web page (`status.html`) with various statistics of the server status. In this demo we use the [erddap-python](https://github.com/hmedrano/erddap-python) library that parses all this information and return it has scalars and dataframes. With this data we created this simple dashboard to explore the statistics visualy.")
     st.write("If you are a user or admin of a ERDDAP server just change the following URL to your ERDDAP server to get the stats.")
 
+
+def serverURLWidget():
     _erddapurl = st.text_input("URL of the ERDDAP Server", DEFAULT_ERDDAPURL, help="Change this to get metrics from a different ERDDAP Server")
+    _reloadActivated = st.button('Reload', help='Reload the last status data from ERDDAP Server')
     st.write('')
-    return _erddapurl
-    
+    return _erddapurl, _reloadActivated
+
 
 def failed2LoadDatasets(sdf):
     nfd = sdf['ndatasetsfailed2load_sincelast_mld']
     fd = sdf['datasetsfailed2load_sincelast_mld']
     st.subheader('The bad.. Some datasets that failed to load.')
     st.write('Number of failed datasets to load since last major load datasets event: `{}`'.format(nfd))
-    st.write('Datasets id\'s: {}'.format(', '.join(['`{}`'.format(d) for d in fd])))
+    if nfd > 0:
+        st.write('Datasets id\'s: {}'.format(', '.join(['`{}`'.format(d) for d in fd])))
     
-
 
 def showGenerals(sdf):
     st.subheader("Server numbers")
-
+    st.write("- Server version: `{}` ".format(sdf['version']))
     st.write("- Metrics recovered on: `{}` ".format(sdf['current-time']))
     st.write("- Server started : `{}` ".format(sdf['startup-time']))
     st.write("- Total datasets : `{:,}` ".format(sdf['ntotaldatasets']))
@@ -300,8 +312,8 @@ def showGenerals(sdf):
     st.write("- Memory high water mark : `{:,} MB`".format(sdf['highwatermark']))
     st.write("- Memory XMX : `{:,} MB`".format(sdf['xmx']))
     
-def showCredits():
 
+def showCredits():
     st.write('----')
     st.write('Review the source code [here](https://github.com/hmedrano/erddap-status-dashboard)')
     st.write('*By Favio Medrano*')
@@ -311,14 +323,14 @@ def showCredits():
 
 #
 # MAIN
-#
 try:
 
     customCSS()
-    _erddapurl = titleDashboard()
-    
-    reloadActivated = st.button('Reload', help='Reload the last status data from ERDDAP Server')
-    sdf = getStatusData(gremote, _erddapurl, force=reloadActivated)
+    titleDashboard()
+
+    erddapurl, reloadActivated = serverURLWidget()
+    with st.spinner('Loading metrics..'):
+        sdf = getStatusData(gremote, erddapurl, force=reloadActivated)
 
     showGenerals(sdf)
     plotMLDTimeseries(sdf)
