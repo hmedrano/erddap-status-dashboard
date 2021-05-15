@@ -50,8 +50,12 @@ def plotMLDTimeseries(sdf):
     nresponses = nresponses.melt('timestamp', var_name='type', value_name='value')
     nresponses = nresponses.rename(columns={'type' : 'variable'})
     # Data memory usage
-    memoryusage = sdfnoindex[['timestamp','M_inuse','M_highwater']]
-    memoryusage = memoryusage.rename(columns={'M_inuse' : 'In use' , 'M_highwater' : 'Highwater' })
+    if sdf['version'] >= 2.12:
+        memoryusage = sdfnoindex[['timestamp','M_inuse']]
+        memoryusage = memoryusage.rename(columns={'M_inuse' : 'In use'})
+    else:
+        memoryusage = sdfnoindex[['timestamp','M_inuse','M_highwater']]
+        memoryusage = memoryusage.rename(columns={'M_inuse' : 'In use' , 'M_highwater' : 'Highwater' })
     memoryusage = memoryusage.melt('timestamp', var_name='type', value_name='value')
     memoryusage = memoryusage.rename(columns={'type' : 'variable'})    
 
@@ -108,22 +112,39 @@ def plotMLDTimeseries(sdf):
 
     st.altair_chart(reqSuccessfulFailsPlot, use_container_width=True)
 
-    memUsagePlot = (
-        alt.Chart(memoryusage)
-        .mark_line()
-        .encode(
-            x=alt.X('timestamp'),
-            y=alt.Y('value', title='MB', stack=None),
-            color=alt.Color('variable', scale=alt.Scale(
-                domain=['In use', 'Highwater'], range=['green', 'red']
-            )),
-            strokeDash=alt.condition(alt.datum.variable == 'Highwater', alt.value([5, 1]), alt.value([0])),
-            tooltip='value'
+    if sdf['version'] >= 2.12:
+        memUsagePlot = (
+            alt.Chart(memoryusage)
+            .mark_line()
+            .encode(
+                x=alt.X('timestamp'),
+                y=alt.Y('value', title='MB', stack=None),
+                color=alt.Color('variable', scale=alt.Scale(
+                    domain=['In use'], range=['green']
+                )),
+                tooltip='value'
+            )
+            .configure_axis(grid=False)
+            .configure_view(strokeOpacity=0)
+            .properties(width=650, height=300, title='Memory usage') 
         )
-        .configure_axis(grid=False)
-        .configure_view(strokeOpacity=0) 
-        .properties(width=650, height=300, title='Memory usage') 
-    )
+    else:
+        memUsagePlot = (
+            alt.Chart(memoryusage)
+            .mark_line()
+            .encode(
+                x=alt.X('timestamp'),
+                y=alt.Y('value', title='MB', stack=None),
+                color=alt.Color('variable', scale=alt.Scale(
+                    domain=['In use', 'Highwater'], range=['green', 'red']
+                )),
+                strokeDash=alt.condition(alt.datum.variable == 'Highwater', alt.value([5, 1]), alt.value([0])),
+                tooltip='value'
+            )
+            .configure_axis(grid=False)
+            .configure_view(strokeOpacity=0) 
+            .properties(width=650, height=300, title='Memory usage') 
+        )
 
     st.altair_chart(memUsagePlot, use_container_width=True)
 
@@ -192,7 +213,7 @@ def plotMajorMinorTD(sdf):
         .configure_scale(bandPaddingInner=1)
         .configure_axis(grid=False)
         .configure_view(strokeOpacity=0)
-        .properties(width=510, height=12)
+        .properties(width=485, height=12)
     )
     
     st.altair_chart(fig, use_container_width=False)
@@ -258,7 +279,7 @@ def plotResponsesSvsF(sdf):
             .configure_scale(bandPaddingInner=1)
             .configure_axis(grid=False)
             .configure_view(strokeOpacity=0)
-            .properties(width=510, height=12)    
+            .properties(width=485, height=12)
         )
 
         st.altair_chart(fig, use_container_width=False)
@@ -278,10 +299,13 @@ def customCSS():
 
 def titleDashboard():
     st.title("ERDDAP Server Status Dashboard")
-    st.write("This is a ERDDAP server status dashboard demostration. We use [Streamlit](https://streamlit.io) for the wep app framework, [Altair](https://altair-viz.github.io) for visualizations and [erddap-python](https://github.com/hmedrano/erddap-python) for data collection.")
-    st.write("[ERDDAP](https://coastwatch.pfeg.noaa.gov/erddap/information.html) it's a data distribution server that gives you a simple, consistent way to download subsets of scientific datasets in common file formats and make graphs and maps.")
-    st.write("ERDDAP generates a web page (`status.html`) with various statistics of the server status. In this demo we use the [erddap-python](https://github.com/hmedrano/erddap-python) library that parses all this information and return it has scalars and dataframes. With this data we created this simple dashboard to explore the statistics visualy.")
-    st.write("If you are a user or admin of a ERDDAP server just change the following URL to your ERDDAP server to get the stats.")
+
+    st.sidebar.subheader('This is an ERDDAP server status dashboard demonstration.')
+    st.sidebar.write("[ERDDAP](https://coastwatch.pfeg.noaa.gov/erddap/information.html) it's a data distribution server that gives you a simple, consistent way to download subsets of scientific datasets in common file formats and make graphs and maps.")
+    st.sidebar.write("ERDDAP generates a web page (status.html) with various statistics of the server status. In this demo, we use the [erddap-python](https://github.com/hmedrano/erddap-python) library that parses all this information and returns it as scalars and DataFrames. With this data, we created this simple dashboard to explore the statistics visually.")
+    st.sidebar.write("This app was created using [Streamlit](https://streamlit.io), [Altair](https://altair-viz.github.io) for visualizations, and [erddap-python](https://github.com/hmedrano/erddap-python) for data collection.")
+
+    st.write("This web application will parse the `status.html` metrics published by ERDDAP Servers, change the following URL to your server to interactively visualize various metrics.")
 
 
 def serverURLWidget():
@@ -317,9 +341,12 @@ def showGenerals(sdf):
 
 def showCredits():
     st.write('----')
-    st.write('Review the source code [here](https://github.com/hmedrano/erddap-status-dashboard)')
-    st.write('*By Favio Medrano*')
+    st.sidebar.write('----')
+    st.sidebar.write("**Pro tip**: Append the following to the app url: `?url=https://your-erddap/erddap` so you can share or bookmark your erddap status dashboard.")
 
+    st.sidebar.write('----')
+    st.sidebar.write('*Review the source code [here](https://github.com/hmedrano/erddap-status-dashboard)*')
+    st.sidebar.write('*By [Favio Medrano](https://agildev.mx/en)*')
 
 
 
