@@ -1,4 +1,4 @@
 altair
 pandas
 streamlit
-erddap-python>=0.0.8b
+erddap-python>=0.0.9b

@@ -305,6 +305,8 @@ def showGenerals(sdf):
     st.write("- Server version: `{}` ".format(sdf['version']))
     st.write("- Metrics recovered on: `{}` ".format(sdf['current-time']))
     st.write("- Server started : `{}` ".format(sdf['startup-time']))
+    if sdf['version'] >= 2.12:
+        st.write("- Unique users since startup : `{}` ".format(sdf['nunique_users_since_startup']))
     st.write("- Total datasets : `{:,}` ".format(sdf['ntotaldatasets']))
     st.write("- Tabledap datasets : `{:,}` ".format(sdf['ntabledatasets']))
     st.write("- Griddap datasets : `{:,}` ".format(sdf['ngriddatasets']))
