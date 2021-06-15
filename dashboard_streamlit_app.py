@@ -26,7 +26,8 @@ def getStatusData(remote, erddapurl, force=False):
     remote.parseStatusPage(force=force)
     statusValues = remote.statusValues
     statusValues['version'] = remote.version_numeric
-    return statusValues
+    statusPageLink = remote.statusPageURL
+    return statusValues, statusPageLink
 
 
 def plotMLDTimeseries(sdf):
@@ -339,7 +340,9 @@ def showGenerals(sdf):
     st.write("- Memory XMX : `{:,} MB`".format(sdf['xmx']))
     
 
-def showCredits():
+def showCredits(statusPageLink):
+    st.write('----')
+    st.write('> Follow [this link]({}) to read the original status.html source page.'.format(statusPageLink))
     st.write('----')
     st.sidebar.write('----')
     st.sidebar.write("**Pro tip**: Append the following to the app url: `?url=https://your-erddap/erddap` so you can share or bookmark your erddap status dashboard.")
@@ -359,14 +362,14 @@ try:
 
     erddapurl, reloadActivated = serverURLWidget()
     with st.spinner('Loading metrics..'):
-        sdf = getStatusData(gremote, erddapurl, force=reloadActivated)
+        sdf, statusPageLink = getStatusData(gremote, erddapurl, force=reloadActivated)
 
     showGenerals(sdf)
     plotMLDTimeseries(sdf)
     plotResponsesSvsF(sdf)
     plotMajorMinorTD(sdf)
     failed2LoadDatasets(sdf)
-    showCredits()
+    showCredits(statusPageLink)
     
 
 except Exception as e:
